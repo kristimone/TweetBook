@@ -59,8 +59,6 @@ namespace Tweetbook.Services
                 };
             }
 
-            await _userManager.AddClaimAsync(newUser, new Claim("tags.view", "true"));
-
             return await GenerateAuthenticationResultForUserAsync(newUser);
         }
         public async Task<AuthenticationResult> LoginAsync(string email, string password)
