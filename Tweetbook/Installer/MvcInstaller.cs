@@ -52,12 +52,10 @@ namespace Tweetbook.Installer
                 x.TokenValidationParameters = tokenValidationParameters;
             });
 
-            services.AddAuthorization();
-
-            services.AddControllersWithViews()
-                .AddNewtonsoftJson(options =>
-                options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
-            );
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("TagViewer", builder => builder.RequireClaim("tags.view", "true"));
+            });
 
             services.AddSwaggerGen(x =>
             {

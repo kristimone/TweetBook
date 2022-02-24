@@ -41,8 +41,10 @@ namespace Tweetbook.Services
                 };
             }
 
+            var newUserId = Guid.NewGuid();
             var newUser = new IdentityUser
             {
+                Id = newUserId.ToString(),
                 Email = email,
                 UserName = email
             };
@@ -56,6 +58,8 @@ namespace Tweetbook.Services
                     Errors = createdUser.Errors.Select(x => x.Description)
                 };
             }
+
+            await _userManager.AddClaimAsync(newUser, new Claim("tags.view", "true"));
 
             return await GenerateAuthenticationResultForUserAsync(newUser);
         }
@@ -87,7 +91,7 @@ namespace Tweetbook.Services
         {
             var validatedToken = GetPrincipalFromToken(token);
 
-            if(validatedToken == null)
+            if (validatedToken == null)
             {
                 return new AuthenticationResult { Errors = new[] { "Invalid Token" } };
             }
@@ -98,7 +102,7 @@ namespace Tweetbook.Services
             var expiryDateTimeUTC = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 .AddSeconds(expiryDateUnix);
 
-            if(expiryDateTimeUTC > DateTime.UtcNow)
+            if (expiryDateTimeUTC > DateTime.UtcNow)
             {
                 return new AuthenticationResult { Errors = new[] { "This token hasn't expired yet" } };
             }
@@ -112,7 +116,7 @@ namespace Tweetbook.Services
                 return new AuthenticationResult { Errors = new[] { "This refresh token does not exist" } };
             }
 
-            if(DateTime.UtcNow > storedRefreshToken.ExpiryDate)
+            if (DateTime.UtcNow > storedRefreshToken.ExpiryDate)
             {
                 return new AuthenticationResult { Errors = new[] { "This refresh token has expired" } };
             }
@@ -145,15 +149,21 @@ namespace Tweetbook.Services
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_jwtSettings.Secret);
-            var tokenDescriptor = new SecurityTokenDescriptor
+
+            var claims = new List<Claim>
             {
-                Subject = new ClaimsIdentity(new[]
-                {
                     new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                     new Claim(JwtRegisteredClaimNames.Email, user.Email),
                     new Claim("id", user.Id)
-                }),
+            };
+
+            var userClaims = await _userManager.GetClaimsAsync(user);
+            claims.AddRange(userClaims);    
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.Add(_jwtSettings.TokenLifetime),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
@@ -198,7 +208,7 @@ namespace Tweetbook.Services
                 return null;
             }
         }
-        
+
         private bool IsJwtWithValidSecurityAlgorithm(SecurityToken validatedToken)
         {
             return (validatedToken is JwtSecurityToken jwtSecurityToken) &&
