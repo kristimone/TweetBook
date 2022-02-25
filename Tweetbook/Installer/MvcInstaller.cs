@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Swagger;
+using Tweetbook.Authorization;
 using Tweetbook.Options;
 using Tweetbook.Services;
 
@@ -52,7 +53,12 @@ namespace Tweetbook.Installer
                 x.TokenValidationParameters = tokenValidationParameters;
             });
 
-            services.AddAuthorization();
+            services.AddAuthorization(options => {
+                options.AddPolicy("MustWorksForMone", policy =>
+                {
+                    policy.AddRequirements(new WorksForCompanyRequirement("mone.com"));
+                });
+            });
 
             services.AddSwaggerGen(x =>
             {
