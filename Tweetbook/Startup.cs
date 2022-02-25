@@ -18,6 +18,7 @@ using Swashbuckle.AspNetCore.Swagger;
 using SwaggerOptions = Tweetbook.Options.SwaggerOptions;
 using Tweetbook.Installer;
 using Microsoft.Extensions.Hosting;
+using AutoMapper;
 
 namespace Tweetbook
 {
@@ -34,6 +35,7 @@ namespace Tweetbook
         public void ConfigureServices(IServiceCollection services)
         {
             services.InstallServicesAssembly(Configuration);
+            services.AddAutoMapper(typeof(Startup));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

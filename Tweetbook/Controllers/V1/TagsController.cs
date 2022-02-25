@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Tweetbook.Contracts.V1;
 using Tweetbook.Contracts.V1.Requests;
@@ -16,21 +19,31 @@ namespace Tweetbook.Controllers.V1
     public class TagsController : Controller
     {
         private readonly IPostService _postService;
+        private readonly IMapper _mapper;
 
-        public TagsController(IPostService postService)
+        public TagsController(IPostService postService, IMapper mapper)
         {
             _postService = postService;
+            _mapper = mapper;
         }
         [HttpGet(ApiRoutes.Tags.GetAll)]
         public async Task<IActionResult> GetAll()
         {
-            return Ok(await _postService.GetAllTagsAsync());
+            var tags = await _postService.GetAllTagsAsync();
+            return Ok(_mapper.Map<List<TagResponse>>(tags));
         }
 
         [HttpGet(ApiRoutes.Tags.Get)]
         public async Task<IActionResult> Get([FromRoute] string tagName)
         {
-            return Ok(await _postService.GetTagByNameAsync(tagName));
+            var tag = await _postService.GetTagByNameAsync(tagName);
+            
+            if(tag == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(_mapper.Map<TagResponse>(tag));
         }
         [HttpPost(ApiRoutes.Tags.Create)]
         public async Task<IActionResult> Create([FromBody] CreateTagRequest request)
@@ -51,8 +64,7 @@ namespace Tweetbook.Controllers.V1
             var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.ToUriComponent()}";
             var locationUri = baseUrl + "/" + ApiRoutes.Tags.Get.Replace("{tagName}", newTag.Name);
 
-            var response = new TagResponse { Name = newTag.Name };
-            return Created(locationUri, response);
+            return Created(locationUri, _mapper.Map<TagResponse>(newTag));
         }
 
         [HttpDelete(ApiRoutes.Tags.Delete)]
