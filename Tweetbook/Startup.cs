@@ -19,6 +19,9 @@ using SwaggerOptions = Tweetbook.Options.SwaggerOptions;
 using Tweetbook.Installer;
 using Microsoft.Extensions.Hosting;
 using AutoMapper;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Tweetbook.Contracts.HealthChecks;
+using Newtonsoft.Json;
 
 namespace Tweetbook
 {
@@ -49,6 +52,28 @@ namespace Tweetbook
             {
                 app.UseHsts();
             }
+
+            app.UseHealthChecks("/health", new HealthCheckOptions 
+            {
+                ResponseWriter = async (context, report) =>
+                {
+                    context.Response.ContentType = "application/json";
+
+                    var response = new HealthCheckResponse
+                    {
+                        Status = report.Status.ToString(),
+                        Checks = report.Entries.Select(x => new HealthCheck
+                        {
+                            Component = x.Key,
+                            Status = x.Value.Status.ToString(),
+                            Description = x.Value.Description
+                        }),
+                        Duration = report.TotalDuration
+                    };
+
+                    await context.Response.WriteAsync(JsonConvert.SerializeObject(response));
+                }
+            });
 
             var swaggerOptions = new SwaggerOptions();
             Configuration.GetSection(nameof(SwaggerOptions)).Bind(swaggerOptions);
