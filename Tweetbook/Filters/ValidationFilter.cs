@@ -1,6 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.Filters;
-using System;
-using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using System.Linq;
 using System.Threading.Tasks;
 using Tweetbook.Contracts.V1.Responses;
@@ -30,9 +29,11 @@ namespace Tweetbook.Filters
                         };
 
                         errorResponse.Errors.Add(errorModel);
-                        return;
                     }
                 }
+
+                context.Result = new BadRequestObjectResult(errorResponse);
+                return;
             }
 
             await next();

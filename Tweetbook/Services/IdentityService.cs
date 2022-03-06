@@ -17,16 +17,21 @@ namespace Tweetbook.Services
     public class IdentityService : IIdentityService
     {
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly JwtSettings _jwtSettings;
         private readonly TokenValidationParameters _tokenValidationParameters;
         private readonly DataContext _context;
+        private readonly IFacebookAuthService _facebookAuthService;
         public IdentityService(UserManager<IdentityUser> userManager, JwtSettings jwtSettings,
-            TokenValidationParameters tokenValidationParameters, DataContext context)
+            TokenValidationParameters tokenValidationParameters, DataContext context,
+            RoleManager<IdentityRole> roleManager, IFacebookAuthService facebookAuthService)
         {
             _userManager = userManager;
             _jwtSettings = jwtSettings;
             _tokenValidationParameters = tokenValidationParameters;
+            _roleManager = roleManager;
             _context = context;
+            _facebookAuthService = facebookAuthService;
         }
 
         public async Task<AuthenticationResult> RegisterAsync(string email, string password)
@@ -37,7 +42,7 @@ namespace Tweetbook.Services
             {
                 return new AuthenticationResult
                 {
-                    Errors = new[] { "User with this email already exists" }
+                    Errors = new[] { "User with this email address already exists" }
                 };
             }
 
@@ -142,6 +147,45 @@ namespace Tweetbook.Services
             return await GenerateAuthenticationResultForUserAsync(user);
 
         }
+        public async Task<AuthenticationResult> LoginWithFacebookAsync(string accessToken)
+        {
+            var validatedTokenResult = await _facebookAuthService.ValidateAccessTokenAsync(accessToken);
+
+            if (!validatedTokenResult.Data.IsValid)
+            {
+                return new AuthenticationResult
+                {
+                    Errors = new[] {"Invalid Facebook Token"}
+                };
+            }
+
+            var userInfo = await _facebookAuthService.GetUserInfoAsync(accessToken);
+
+            var user = await _userManager.FindByEmailAsync(userInfo.Email);
+
+            if(user == null)
+            {
+                var identityUser = new IdentityUser
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Email = userInfo.Email,
+                    UserName = userInfo.Email
+                };
+
+                var createdResult = await _userManager.CreateAsync(identityUser);
+                if (!createdResult.Succeeded)
+                {
+                    return new AuthenticationResult
+                    {
+                        Errors = new[] {"Something went wrong"}
+                    };
+                }
+
+                return await GenerateAuthenticationResultForUserAsync(identityUser);
+            }
+
+            return await GenerateAuthenticationResultForUserAsync(user);
+        }
 
         private async Task<AuthenticationResult> GenerateAuthenticationResultForUserAsync(IdentityUser user)
         {
@@ -157,7 +201,25 @@ namespace Tweetbook.Services
             };
 
             var userClaims = await _userManager.GetClaimsAsync(user);
-            claims.AddRange(userClaims);    
+            claims.AddRange(userClaims);
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            foreach(var userRole in userRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, userRole));
+                var role = await _roleManager.FindByNameAsync(userRole);
+                if (role == null)
+                    continue;
+                var roleClaims = await _roleManager.GetClaimsAsync(role);
+
+                foreach(var roleClaim in roleClaims)
+                {
+                    if (claims.Contains(roleClaim))
+                        continue;
+
+                    claims.Add(roleClaim);
+                }
+            }
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -193,6 +255,8 @@ namespace Tweetbook.Services
 
             try
             {
+                var tokenValidationParameters = _tokenValidationParameters.Clone();
+                tokenValidationParameters.ValidateLifetime = false;
                 var principal = tokenHandler.ValidateToken(token, _tokenValidationParameters, out var validatedToken);
                 if (!IsJwtWithValidSecurityAlgorithm(validatedToken))
                 {

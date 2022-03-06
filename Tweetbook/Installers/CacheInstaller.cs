@@ -1,14 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Tweetbook.Cache;
 using Tweetbook.Services;
 
-namespace Tweetbook.Installer
+namespace Tweetbook.Installers
 {
     public class CacheInstaller : IInstaller
     {

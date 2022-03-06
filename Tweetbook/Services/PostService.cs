@@ -34,16 +34,22 @@ namespace Tweetbook.Services
 
         public async Task<Post> GetPostByIdAsync(Guid postId)
         {
-            return await _dataContext.Posts.SingleOrDefaultAsync(x => x.Id == postId);
+            return await _dataContext.Posts.Include(x => x.Tags).SingleOrDefaultAsync(x => x.Id == postId);
         }
         public async Task<bool> CreatePostAsync(Post post)
         {
+            post.Tags?.ForEach(x => x.TagName = x.TagName.ToLower());
+
+            await AddNewTags(post);
             await _dataContext.Posts.AddAsync(post);
+
             var created = await _dataContext.SaveChangesAsync();
             return created > 0;
         }
         public async Task<bool> UpdatePostAsync(Post postToUpdate)
         {
+            postToUpdate.Tags?.ForEach(x => x.TagName = x.TagName.ToLower());
+            await AddNewTags(postToUpdate);
             _dataContext.Posts.Update(postToUpdate);
             var updated = await _dataContext.SaveChangesAsync();
             return updated > 0;
@@ -79,13 +85,13 @@ namespace Tweetbook.Services
 
         public async Task<List<Tag>> GetAllTagsAsync()
         {
-            return await _dataContext.Tags.ToListAsync();
+            return await _dataContext.Tags.AsNoTracking().ToListAsync();
         }
 
         public async Task<bool> CreateTagAsync(Tag tag)
         {
             tag.Name = tag.Name.ToLower();
-            var existingTag = await _dataContext.Tags.SingleOrDefaultAsync(x => x.Name == tag.Name);
+            var existingTag = await _dataContext.Tags.AsNoTracking().SingleOrDefaultAsync(x => x.Name == tag.Name);
             if (existingTag != null)
                 return true;
 
@@ -96,12 +102,12 @@ namespace Tweetbook.Services
 
         public async Task<Tag> GetTagByNameAsync(string tagName)
         {
-            return await _dataContext.Tags.SingleOrDefaultAsync(x => x.Name == tagName.ToLower());
+            return await _dataContext.Tags.AsNoTracking().SingleOrDefaultAsync(x => x.Name == tagName.ToLower());
         }
 
         public async Task<bool> DeleteTagAsync(string tagName)
         {
-            var tag = await _dataContext.Tags.SingleOrDefaultAsync(x => x.Name == tagName.ToLower());
+            var tag = await _dataContext.Tags.AsNoTracking().SingleOrDefaultAsync(x => x.Name == tagName.ToLower());
 
             if (tag == null)
                 return true;
@@ -111,6 +117,23 @@ namespace Tweetbook.Services
             _dataContext.PostTags.RemoveRange(postTags);
             _dataContext.Tags.Remove(tag);
             return await _dataContext.SaveChangesAsync() > postTags.Count;
+        }
+
+        private async Task AddNewTags(Post post)
+        {
+            foreach(var tag in post.Tags)
+            {
+                var existingTag = await _dataContext.Tags.SingleOrDefaultAsync(x => x.Name == tag.TagName);
+                if (existingTag != null)
+                    continue;
+
+                await _dataContext.Tags.AddAsync(new Tag
+                {
+                    Name = tag.TagName,
+                    CreatedOn = DateTime.UtcNow,
+                    CreatorId = post.UserId
+                });
+            }
         }
         private static IQueryable<Post> AddFiltersOnQuery(GetAllPostsFilter filter, IQueryable<Post> queryable)
         {

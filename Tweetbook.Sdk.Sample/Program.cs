@@ -1,5 +1,4 @@
 ﻿using Refit;
-using System;
 using System.Threading.Tasks;
 using Tweetbook.Contracts.V1.Requests;
 
@@ -39,14 +38,14 @@ namespace Tweetbook.Sdk.Sample
                 Tags = new[] {"sdk"}
             });
 
-            var retrievePost = await tweetbookApi.GetAsync(createdPost.Content.Id);
+            var retrievePost = await tweetbookApi.GetAsync(createdPost.Content.Data.Id);
 
-            var updatedPost = await tweetbookApi.UpdateAsync(createdPost.Content.Id, new UpdatePostRequest
+            var updatedPost = await tweetbookApi.UpdateAsync(createdPost.Content.Data.Id, new UpdatePostRequest
             {
                 Name = "This is updated by the SDK"
             });
 
-            var deletedPost = await tweetbookApi.DeleteAsync(createdPost.Content.Id);
+            var deletedPost = await tweetbookApi.DeleteAsync(createdPost.Content.Data.Id);
         }
     }
 }

@@ -5,11 +5,9 @@ using Swashbuckle.AspNetCore.Filters;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 
-namespace Tweetbook.Installer
+namespace Tweetbook.Installers
 {
     public class SwaggerInstaller : IInstaller
     {
@@ -20,11 +18,6 @@ namespace Tweetbook.Installer
                 x.SwaggerDoc("v1", new OpenApiInfo { Title = "Tweetbook API", Version = "v1" });
 
                 x.ExampleFilters();
-
-                var security = new Dictionary<string, IEnumerable<string>>
-                {
-                    {"Bearer", new string[0] }
-                };
 
                 x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {

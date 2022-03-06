@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -11,14 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.Swagger;
 using Tweetbook.Authorization;
 using Tweetbook.Filters;
 using Tweetbook.Options;
 using Tweetbook.Services;
 
-namespace Tweetbook.Installer
+namespace Tweetbook.Installers
 {
     public class MvcInstaller : IInstaller
     {
@@ -64,7 +58,7 @@ namespace Tweetbook.Installer
             });
 
             services.AddAuthorization(options => {
-                options.AddPolicy("MustWorksForMone", policy =>
+                options.AddPolicy("MustWorkForMone", policy =>
                 {
                     policy.AddRequirements(new WorksForCompanyRequirement("mone.com"));
                 });

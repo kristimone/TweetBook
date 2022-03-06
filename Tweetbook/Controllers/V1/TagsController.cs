@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Tweetbook.Contracts.V1;
 using Tweetbook.Contracts.V1.Requests;
@@ -72,7 +71,7 @@ namespace Tweetbook.Controllers.V1
             var created = await _postService.CreateTagAsync(newTag);
             if (!created)
             {
-                return BadRequest(new ErrorResponse {Errors = new List<ErrorModel> { new ErrorModel { Message = "Unable to create tag"}}});
+                return BadRequest(new ErrorResponse ( new ErrorModel { Message = "Unable to create tag"}));
             }
 
             var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.ToUriComponent()}";
@@ -82,7 +81,7 @@ namespace Tweetbook.Controllers.V1
         }
 
         [HttpDelete(ApiRoutes.Tags.Delete)]
-        [Authorize(Roles = "MustWorksForMone")]
+        [Authorize(Roles = "MustWorkForMone")]
         public async Task<IActionResult> Delete([FromRoute] string tagName)
         {
             var deleted = await _postService.DeleteTagAsync(tagName);
